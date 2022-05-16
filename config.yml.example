@@ -1,0 +1,8 @@
+sync:
+    mode: 1
+    first: kodi
+kodi:
+    url: http://localhost:80
+plex:
+    url: https://localhost:32400
+    token:

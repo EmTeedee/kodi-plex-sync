@@ -6,7 +6,7 @@ from kodiplex.kodi.kodi_rpc import KodiRPC
 from kodiplex.media import Media, KodiMedia, PlexMedia
 from kodiplex.plex.plex import Types
 from logger import logger
-
+import yaml
 
 class MediaSyncer:
     """
@@ -118,7 +118,13 @@ def getFiles(thing):
 
 
 if __name__ == "__main__":
-    kodiMedia = getKodiMedia("http://localhost:8080")
-    plexMedia = getPlexMedia("http://192.168.0.100:32400")
-    sync = MediaSyncer(kodiMedia, plexMedia, 1, strict=False)
+    with open("config.yml", "r") as ymlfile:
+        cfg = yaml.load(ymlfile, Loader=yaml.SafeLoader)
+
+    kodiMedia = getKodiMedia(cfg["kodi"]["url"])
+    plexMedia = getPlexMedia(cfg["plex"]["url"], cfg["plex"]["token"])
+    if (cfg["sync"]["first"] == "kodi"):
+        sync = MediaSyncer(kodiMedia, plexMedia, cfg["sync"]["mode"], strict=False)
+    else:
+        sync = MediaSyncer(plexMedia, kodiMedia, cfg["sync"]["mode"], strict=False)
     sync.sync()

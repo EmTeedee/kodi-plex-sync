@@ -1,1 +1,1 @@
-python -m kodiplex.sync
+python3 -m kodiplex.sync
