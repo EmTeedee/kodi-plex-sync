@@ -70,6 +70,7 @@ class MediaSyncer:
             mediaApath = self.normalizeNames(mediaA.path)
             for mediaB in self.b:
                 if mediaApath == self.normalizeNames(mediaB.path) and mediaA.watched != mediaB.watched:
+                    logger.info("Update watch status: %s" % mediaApath)
                     mediaB.updateWatched(mediaA.watched)
 
     def bidirectionalSync(self):
@@ -78,6 +79,7 @@ class MediaSyncer:
             mediaApath = self.normalizeNames(mediaA.path)
             for mediaB in self.b:
                 if mediaApath == self.normalizeNames(mediaB.path) and mediaA.watched != mediaB.watched:
+                    logger.info("Update watch status: %s" % mediaApath)
                     if self.mode == 1:
                         if not mediaA.watched:
                             mediaA.updateWatched(True)
