@@ -5,5 +5,11 @@ sync:
 kodi:
     url: http://localhost:80
 plex:
-    url: https://localhost:32400
+    url: http://localhost:32400
     token:
+normalize:
+    enable: false
+    map: {
+        smb://localhost/TV/Current/ : /nas/tv/current/,
+        smb://localhost/TV/Archive/ : /nas/tv/archive/
+    }

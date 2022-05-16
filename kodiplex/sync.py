@@ -21,52 +21,63 @@ class MediaSyncer:
     Note that if strict, checking is done before doing any updates.
     """
 
-    def __init__(self, a, b, mode: int, strict=False):
+    def __init__(self, a, b, mode: int, strict=False, normalize={}):
         self.a = a
         self.b = b
         if not 0 <= mode <= 2:
             raise ValueError("mode must be 0,1 or 2")
         self.mode = mode
         self.strict = strict
+        self.normalize = normalize
 
     def verify(self):
         if not self.strict:
             return
-        inAnotB = []
-        inBnotA = []
+        differences = 0
         for mediaA in self.a:
+            mediaApath = self.normalizeNames(mediaA.path)
             for mediaB in self.b:
-                if mediaA == mediaB:
+                if mediaApath == self.normalizeNames(mediaB.path):
                     break
             else:  # Loop fell through without finding mediaA in b.
-                inAnotB.append(mediaA)
+                differences += 1
+                logger.error('Not found: A - %s (normalized: %s)' % (mediaA.path, mediaApath))
         if self.mode > 0:
             for mediaB in self.b:
+                mediaBpath = self.normalizeNames(mediaB.path)
                 for mediaA in self.a:
-                    if mediaB == mediaA:
+                    if mediaBpath == self.normalizeNames(mediaA.path):
                         break
                 else:
-                    inBnotA.append(mediaB)
-        if len(inBnotA) + len(inAnotB) > 0:
+                    differences += 1
+                    logger.error('Not found: B - %s (normalized: %s)' % (mediaB.path, mediaBpath))
+        if differences > 0:
             logger.error("Media mismatch!")
-            logger.error("Media in a but not b:")
-            [logger.error(str(x)) for x in inAnotB]
-            logger.error("Media in b but not a:")
-            [logger.error(str(x)) for x in inBnotA]
             raise Exception("Media mismatch!")
+
+    def normalizeNames(self, nPath):
+        if not self.normalize["enable"]:
+            return nPath
+        else:
+            for mediaA_prefix in self.normalize["map"]:
+                nPath = nPath.replace(mediaA_prefix, self.normalize["map"][mediaA_prefix])
+            nPath = nPath.replace('\\', '/') # For normalizing between Windows and Linux Paths
+            return nPath
 
     def unidirectionalSync(self):
         self.verify()
         for mediaA in self.a:
+            mediaApath = self.normalizeNames(mediaA.path)
             for mediaB in self.b:
-                if mediaA == mediaB and mediaA.watched != mediaB.watched:
+                if mediaApath == self.normalizeNames(mediaB.path) and mediaA.watched != mediaB.watched:
                     mediaB.updateWatched(mediaA.watched)
 
     def bidirectionalSync(self):
         self.verify()
         for mediaA in self.a:
+            mediaApath = self.normalizeNames(mediaA.path)
             for mediaB in self.b:
-                if mediaA == mediaB and mediaA.watched != mediaB.watched:
+                if mediaApath == self.normalizeNames(mediaB.path) and mediaA.watched != mediaB.watched:
                     if self.mode == 1:
                         if not mediaA.watched:
                             mediaA.updateWatched(True)
@@ -124,7 +135,7 @@ if __name__ == "__main__":
     kodiMedia = getKodiMedia(cfg["kodi"]["url"])
     plexMedia = getPlexMedia(cfg["plex"]["url"], cfg["plex"]["token"])
     if (cfg["sync"]["first"] == "kodi"):
-        sync = MediaSyncer(kodiMedia, plexMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"])
+        sync = MediaSyncer(kodiMedia, plexMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"], normalize = cfg["normalize"])
     else:
-        sync = MediaSyncer(plexMedia, kodiMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"])
+        sync = MediaSyncer(plexMedia, kodiMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"], normalize = cfg["normalize"])
     sync.sync()
