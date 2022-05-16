@@ -16,7 +16,7 @@ python3
 plexapi and requests module for python (pip install -r requirements.txt)
 
 Usage/Config:
-Change the endpoints for plex and kodi according to your setup in sync.py and execute it as a python module
+Copy `config.yml.example` to `config.yml`, Change the configuration according to your needs
 (refer to run.sh/run.bat for sample command)
 
 Set the sync mode and strictness as you want (default is bidirectional sync without strict checking)
@@ -32,14 +32,22 @@ Set the sync mode and strictness as you want (default is bidirectional sync with
     Note that if strict, checking is done before doing any updates.
     
     a and b are the first and second argument to the MediaSyncer constructor (the second to last line in kodiplex/sync.py)
- 
- The default is bidirectional sync. If you wanted to sync only from kodi to plex, you need to change that line to
 
-    sync = MediaSyncer(kodiMedia, plexMedia, 0, strict=False)
+ The default is bidirectional sync. If you wanted to sync only from kodi to plex, you need to change that configuration to
+
+```
+sync:
+    mode: 0
+    first: kodi
+```
 
  And for syncing only from plex to kodi,
 
-    sync = MediaSyncer(plexMedia, kodiMedia, 0, strict=False)
+```
+sync:
+    mode: 0
+    first: plex
+```
 
 And just let it run!
 

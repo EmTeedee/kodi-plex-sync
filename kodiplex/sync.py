@@ -124,7 +124,7 @@ if __name__ == "__main__":
     kodiMedia = getKodiMedia(cfg["kodi"]["url"])
     plexMedia = getPlexMedia(cfg["plex"]["url"], cfg["plex"]["token"])
     if (cfg["sync"]["first"] == "kodi"):
-        sync = MediaSyncer(kodiMedia, plexMedia, cfg["sync"]["mode"], strict=False)
+        sync = MediaSyncer(kodiMedia, plexMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"])
     else:
-        sync = MediaSyncer(plexMedia, kodiMedia, cfg["sync"]["mode"], strict=False)
+        sync = MediaSyncer(plexMedia, kodiMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"])
     sync.sync()

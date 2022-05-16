@@ -1,6 +1,7 @@
 sync:
     mode: 1
     first: kodi
+    strict: false
 kodi:
     url: http://localhost:80
 plex:
