@@ -1,13 +1,14 @@
+"""Standard logger for this project"""
 import logging
 import yaml
 
-with open("config.yml", "r") as ymlfile:
+with open("config.yml", "r", encoding="utf-8") as ymlfile:
     cfg = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
 # get log level from config
 log_level = getattr(logging, cfg["log"]["level"].upper(), None)
 if not isinstance(log_level, int):
-    raise ValueError('Invalid log level: %s' % cfg["log"]["level"])
+    raise ValueError(f"Invalid log level: {cfg['log']['level']}")
 
 logger = logging.getLogger('kodiplex')
 logger.setLevel(log_level)
