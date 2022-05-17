@@ -1,12 +1,13 @@
-from collections.abc import Iterable
+
+import time
+import yaml
 
 from plexapi.server import PlexServer
-
 from kodiplex.kodi.kodi_rpc import KodiRPC
-from kodiplex.media import Media, KodiMedia, PlexMedia
+from kodiplex.media import KodiMedia, PlexMedia
 from kodiplex.plex.plex import Types
 from logger import logger
-import yaml
+
 
 class MediaSyncer:
     """
@@ -21,36 +22,38 @@ class MediaSyncer:
     Note that if strict, checking is done before doing any updates.
     """
 
-    def __init__(self, a, b, mode: int, strict=False, normalize={}):
-        self.a = a
-        self.b = b
-        if not 0 <= mode <= 2:
-            raise ValueError("mode must be 0,1 or 2")
-        self.mode = mode
-        self.strict = strict
+    def __init__(self, medias_a, medias_b, mode: int, strict=False, normalize={}):
+
         self.normalize = normalize
 
+        # hashify inputs
+        self.medias_a = {}
+        for media in medias_a:
+            self.medias_a[self.normalizeNames(media.path)] = media
+        self.medias_b = {}
+        for media in medias_b:
+            self.medias_b[self.normalizeNames(media.path)] = media
+
+        if not 0 <= mode <= 2:
+            raise ValueError("mode must be 0,1 or 2")
+
+        self.mode = mode
+        self.strict = strict
+
+
     def verify(self):
-        if not self.strict:
-            return
         differences = 0
-        for mediaA in self.a:
-            mediaApath = self.normalizeNames(mediaA.path)
-            for mediaB in self.b:
-                if mediaApath == self.normalizeNames(mediaB.path):
-                    break
-            else:  # Loop fell through without finding mediaA in b.
+        for normalized_a in self.medias_a:
+            if normalized_a not in self.medias_b:
                 differences += 1
-                logger.error('Not found: A - %s (normalized: %s)' % (mediaA.path, mediaApath))
+                logger.error('Not found: A - %s (normalized: %s)' % (self.medias_a[normalized_a].path, normalized_a))
+
         if self.mode > 0:
-            for mediaB in self.b:
-                mediaBpath = self.normalizeNames(mediaB.path)
-                for mediaA in self.a:
-                    if mediaBpath == self.normalizeNames(mediaA.path):
-                        break
-                else:
+            for normalized_b in self.medias_b:
+                if normalized_b not in self.medias_a:
                     differences += 1
-                    logger.error('Not found: B - %s (normalized: %s)' % (mediaB.path, mediaBpath))
+                    logger.error('Not found: B - %s (normalized: %s)' % (self.medias_b[normalized_b].path, normalized_b))
+
         if differences > 0:
             logger.error("Media mismatch!")
             raise Exception("Media mismatch!")
@@ -65,21 +68,21 @@ class MediaSyncer:
             return nPath
 
     def unidirectionalSync(self):
-        self.verify()
-        for mediaA in self.a:
-            mediaApath = self.normalizeNames(mediaA.path)
-            for mediaB in self.b:
-                if mediaApath == self.normalizeNames(mediaB.path) and mediaA.watched != mediaB.watched:
-                    logger.info("Update watch status: %s" % mediaApath)
+        for normalizedA in self.medias_a:
+            if normalizedA in self.medias_b:
+                mediaA = self.medias_a[normalizedA]
+                mediaB = self.medias_b[normalizedA]
+                if mediaA.watched != mediaB.watched:
+                    logger.info("Update watch status: %s" % normalizedA)
                     mediaB.updateWatched(mediaA.watched)
 
     def bidirectionalSync(self):
-        self.verify()
-        for mediaA in self.a:
-            mediaApath = self.normalizeNames(mediaA.path)
-            for mediaB in self.b:
-                if mediaApath == self.normalizeNames(mediaB.path) and mediaA.watched != mediaB.watched:
-                    logger.info("Update watch status: %s" % mediaApath)
+        for normalizedA in self.medias_a:
+            if normalizedA in self.medias_b:
+                mediaA = self.medias_a[normalizedA]
+                mediaB = self.medias_b[normalizedA]
+                if mediaA.watched != mediaB.watched:
+                    logger.info("Update watch status: %s" % normalizedA)
                     if self.mode == 1:
                         if not mediaA.watched:
                             mediaA.updateWatched(True)
@@ -92,6 +95,11 @@ class MediaSyncer:
                             mediaB.updateWatched(False)
 
     def sync(self):
+        if self.strict:
+            start = time.monotonic()
+            sync.verify()
+            logger.debug("Verify Strict %.4fs" % time.monotonic() - start)
+
         if self.mode == 0:
             self.unidirectionalSync()
         else:
@@ -134,10 +142,20 @@ if __name__ == "__main__":
     with open("config.yml", "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
+    start = time.monotonic()
     kodiMedia = getKodiMedia(cfg["kodi"]["url"])
+    logger.debug('Get Kodi media %d files %.4fs' % (len(kodiMedia), time.monotonic() - start))
+
+    start = time.monotonic()
     plexMedia = getPlexMedia(cfg["plex"]["url"], cfg["plex"]["token"])
-    if (cfg["sync"]["first"] == "kodi"):
-        sync = MediaSyncer(kodiMedia, plexMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"], normalize = cfg["normalize"])
+    logger.debug("Get Plex media %d files %.4fs" % (len(plexMedia), time.monotonic() - start))
+
+    if cfg["sync"]["first"] == "kodi":
+        sync = MediaSyncer(kodiMedia, plexMedia, cfg["sync"]["mode"],
+                           strict = cfg["sync"]["strict"],
+                           normalize = cfg["normalize"])
     else:
-        sync = MediaSyncer(plexMedia, kodiMedia, cfg["sync"]["mode"], strict = cfg["sync"]["strict"], normalize = cfg["normalize"])
+        sync = MediaSyncer(plexMedia, kodiMedia, cfg["sync"]["mode"],
+                           strict = cfg["sync"]["strict"],
+                           normalize = cfg["normalize"])
     sync.sync()
