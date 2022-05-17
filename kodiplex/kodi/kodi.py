@@ -1,4 +1,5 @@
 """Kodi interface"""
+from typing import List
 from kodiplex.kodi.kodi_rpc import KodiRPC
 from kodiplex.media import Media
 from logger import logger
@@ -30,7 +31,7 @@ class KodiMedia(Media):
             else:
                 return self.kodi.mark_episode_unwatched(self.raw)
 
-def get_media(kodi_url: str):
+def get_media(kodi_url: str) -> List[KodiMedia]:
     """get list with all kodi media files"""
     kodi = KodiRPC(kodi_url)
     medias = kodi.get_movies() + kodi.get_episodes()

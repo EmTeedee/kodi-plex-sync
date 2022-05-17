@@ -1,4 +1,5 @@
 """Plex Media Server interface"""
+from typing import List
 from plexapi.server import PlexServer
 from kodiplex.media import Media, MediaType
 from logger import logger
@@ -19,7 +20,7 @@ class PlexMedia(Media):
         else:
             self.raw.markUnwatched()
 
-def get_media(plex_url: str, plex_token=None):
+def get_media(plex_url: str, plex_token=None) -> List[PlexMedia]:
     """get list with all plex media files"""
     plex = PlexServer(plex_url, token=plex_token)
     medias = []
