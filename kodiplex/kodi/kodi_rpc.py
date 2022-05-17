@@ -1,44 +1,49 @@
+"""Kodi RPC"""
 import json
-
 import requests
 
 # noinspection PyPep8Naming
 from logger import logger
 
-
 class KodiRPC:
-    def __init__(self, serverUrl="http://localhost:8080"):
-        self.server = serverUrl + "/jsonrpc"
+    """Kodi RPC interface"""
+    def __init__(self, server_url="http://localhost:8080"):
+        self.server = server_url + "/jsonrpc"
 
-    def rpc(self, method: str = "JSONRPC.Introspect", params: dict = None, requestId=1):
-        logger.debug("RPC {} {}".format(method, params))
+    def rpc(self, method: str = "JSONRPC.Introspect", params: dict = None, request_id=1):
+        """call kodi rpc"""
+        logger.debug("RPC %s %s", method, params)
         if params is None:
             params = {}
         data = {
             "jsonrpc": "2.0",
             "method": method,
             "params": params,
-            "id": requestId
+            "id": request_id
         }
         resp = requests.post(self.server, json=data)
         if resp.status_code // 100 != 2:
-            raise Exception("Request failed with response code {}, response {}".format(resp.status_code, resp.text))
+            raise Exception(
+                f"Request failed with response code {resp.status_code}, response {resp.text}")
         resp = resp.json()
-        assert resp['id'] == requestId
+        assert resp['id'] == request_id
         if 'error' in resp:
             raise Exception(str(resp['error']))
         return resp['result']
 
-    def getDocs(self):
+    def get_docs(self):
+        """get rpc documentation"""
         return self.rpc()
 
-    def getEpisodes(self):
+    def get_episodes(self):
+        """get episode list"""
         params = {
             "properties": ["playcount", "file"]
         }
         return self.rpc("VideoLibrary.GetEpisodes", params)["episodes"]
 
-    def markEpisodeWatched(self, episode):
+    def mark_episode_watched(self, episode):
+        """mark episode watched"""
         if episode["playcount"] == 0:
             params = {
                 "episodeid": episode["episodeid"],
@@ -46,20 +51,23 @@ class KodiRPC:
             }
             return self.rpc("VideoLibrary.SetEpisodeDetails", params)
 
-    def markEpisodeUnwatched(self, episode):
+    def mark_episode_unwatched(self, episode):
+        """mark episode unwatched"""
         params = {
             "episodeid": episode["episodeid"],
             "playcount": 0
         }
         return self.rpc("VideoLibrary.SetEpisodeDetails", params)
 
-    def getMovies(self):
+    def get_movies(self):
+        """get movie list"""
         params = {
             "properties": ["playcount", "file"]
         }
         return self.rpc("VideoLibrary.GetMovies", params)["movies"]
 
-    def markMovieWatched(self, movie):
+    def mark_movie_watched(self, movie):
+        """mark movie watched"""
         if movie["playcount"] == 0:
             params = {
                 "movieid": movie["movieid"],
@@ -67,24 +75,31 @@ class KodiRPC:
             }
             return self.rpc("VideoLibrary.SetMovieDetails", params)
 
-    def markMovieUnwatched(self, movie):
+    def mark_movie_unwatched(self, movie):
+        """mark movie unwatched"""
         params = {
             "movieid": movie["movieid"],
             "playcount": 0
         }
         return self.rpc("VideoLibrary.SetMovieDetails", params)
 
-    def removeEmptyShows(self):
+    def remove_empty_shows(self):
+        """remove shows from kodi library that have no episodes"""
         shows = self.rpc(method="VideoLibrary.GetTvShows")["tvshows"]
         for show in shows:
             show["episode"] = self.rpc(method="VideoLibrary.GetTVShowDetails",
-                                       params={"tvshowid": show["tvshowid"], "properties": ["episode"]}
+                                       params={"tvshowid": show["tvshowid"],
+                                               "properties": ["episode"]}
                                        )["tvshowdetails"]["episode"]
         for show in shows:
             if show["episode"] == 0:
-                logger.info("Removing show {}".format(show))
+                logger.info("Removing show %s", show)
                 self.rpc(method="VideoLibrary.RemoveTVShow", params={"tvshowid": show["tvshowid"]})
 
 
+def main():
+    """main function for testing"""
+    print(json.dumps(KodiRPC().get_episodes(), indent=4))
+
 if __name__ == "__main__":
-    print(json.dumps(KodiRPC().getEpisodes(), indent=4))
+    main()

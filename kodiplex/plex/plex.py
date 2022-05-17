@@ -1,39 +1,56 @@
-import plexapi
+"""Plex Media Server interface"""
 from plexapi.server import PlexServer
+from kodiplex.media import Media, MediaType
+from logger import logger
 
+__all__ = [
+    'get_media'
+]
 
-class Types:
-    movie = 'movie'
-    show = 'show'
-    episode = 'episode'
+class PlexMedia(Media):
+    """Plex implementation of Media class"""
+    def get_watched_from_raw(self):
+        return self.raw.isWatched
 
+    def update_watched(self, watched: bool):
+        logger.debug("Setting %s watched to %s", self.raw, watched)
+        if watched:
+            self.raw.markWatched()
+        else:
+            self.raw.markUnwatched()
 
-def multi():
-    baseurl = 'http://192.168.0.100:32400'
-    plex = PlexServer(baseurl)
-    multiFile = []
+def get_media(plex_url: str, plex_token=None):
+    """get list with all plex media files"""
+    plex = PlexServer(plex_url, token=plex_token)
+    medias = []
     for thing in plex.library.all():
-        if thing.TYPE == Types.movie:
-            files = getFiles(thing)
-            if len(files) > 1:
-                multiFile.append((thing, files))
-        if thing.type == Types.show:
-            for ep in thing.episodes():
-                files = getFiles(ep)
-                if len(files) > 1:
-                    multiFile.append((ep, files))
-    return multiFile
+        if thing.TYPE == MediaType.movie:
+            files = get_media_files(thing)
+            for file in files:
+                medias.append(PlexMedia(file, thing))
+        if thing.type == MediaType.show:
+            for episode in thing.episodes():
+                files = get_media_files(episode)
+                for file in files:
+                    medias.append(PlexMedia(file, episode))
+    return medias
 
 
-def getFiles(thing):
+def get_media_files(thing):
+    """de-construct plex media into individual files"""
     files = []
-    for m in thing.media:
-        for p in m.parts:
-            files.append(p.file)
+    for media in thing.media:
+        for part in media.parts:
+            files.append(part.file)
     return files
 
 
+def main():
+    """main function to test adapter"""
+    medias = get_media("http://192.168.0.100:32400")
+    for media in medias:
+        print(media)
+
 if __name__ == "__main__":
-    m = multi()
-    for x in m:
-        print(x)
+    main()
+    

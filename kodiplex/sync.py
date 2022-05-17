@@ -4,10 +4,8 @@ Kodi - Plex watched status sync
 import time
 import yaml
 
-from plexapi.server import PlexServer
-from kodiplex.kodi.kodi_rpc import KodiRPC
-from kodiplex.media import KodiMedia, PlexMedia
-from kodiplex.plex.plex import Types
+from kodiplex.kodi.kodi import get_media as get_kodi_media
+from kodiplex.plex.plex import get_media as get_plex_media
 from logger import logger
 
 
@@ -86,7 +84,7 @@ class MediaSyncer:
                 media_b = self.medias_b[normalized_a]
                 if media_a.watched != media_b.watched:
                     logger.info("Update watch status: %s", normalized_a)
-                    media_b.updateWatched(media_a.watched)
+                    media_b.update_watched(media_a.watched)
 
     def sync_bidirectional(self):
         """sync a and b, resolve conflicts as specified"""
@@ -97,14 +95,14 @@ class MediaSyncer:
                     logger.info("Update watch status: %s", normalized_a)
                     if self.mode == 1:
                         if not media_a.watched:
-                            media_a.updateWatched(True)
+                            media_a.update_watched(True)
                         if not media_b.watched:
-                            media_b.updateWatched(True)
+                            media_b.update_watched(True)
                     elif self.mode == 2:
                         if media_a.watched:
-                            media_a.updateWatched(False)
+                            media_a.update_watched(False)
                         if media_b.watched:
-                            media_b.updateWatched(False)
+                            media_b.update_watched(False)
 
     def sync(self):
         """main function to sync stuff"""
@@ -118,40 +116,6 @@ class MediaSyncer:
         else:
             self.sync_bidirectional()
         logger.info("Sync complete")
-
-
-def get_kodi_media(kodi_url: str):
-    """get list with all kodi media files"""
-    kodi = KodiRPC(kodi_url)
-    medias = kodi.getMovies() + kodi.getEpisodes()
-    medias = [KodiMedia(media["file"], media, kodi) for media in medias]
-    return medias
-
-
-def get_plex_media(plex_url: str, plex_token=None):
-    """get list with all plex media files"""
-    plex = PlexServer(plex_url, token=plex_token)
-    medias = []
-    for thing in plex.library.all():
-        if thing.TYPE == Types.movie:
-            files = get_media_files(thing)
-            for file in files:
-                medias.append(PlexMedia(file, thing))
-        if thing.type == Types.show:
-            for episode in thing.episodes():
-                files = get_media_files(episode)
-                for file in files:
-                    medias.append(PlexMedia(file, episode))
-    return medias
-
-
-def get_media_files(thing):
-    """de-construct plex media into individual files"""
-    files = []
-    for media in thing.media:
-        for part in media.parts:
-            files.append(part.file)
-    return files
 
 
 def main():
