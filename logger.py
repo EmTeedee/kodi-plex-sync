@@ -1,4 +1,5 @@
 """Standard logger for this project"""
+import sys
 import logging
 import yaml
 
@@ -17,14 +18,20 @@ logger.setLevel(log_level)
 fh = logging.FileHandler('kodiplex.log')
 fh.setLevel(logging.DEBUG)
 
-# create console handler which logs up to info
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+# create console handler which logs notset/debug/info to stdout and
+# warning/error/critical to stderr
+ch_out = logging.StreamHandler(sys.stdout)
+ch_out.setLevel(logging.DEBUG)
+ch_out.addFilter(lambda record: record.levelno <= logging.INFO)
+ch_err = logging.StreamHandler(sys.stderr)
+ch_err.setLevel(logging.WARNING)
 
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
-ch.setFormatter(formatter)
+ch_out.setFormatter(formatter)
+ch_err.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(fh)
-logger.addHandler(ch)
+logger.addHandler(ch_out)
+logger.addHandler(ch_err)
