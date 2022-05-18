@@ -3,7 +3,7 @@ import json
 import requests
 
 # noinspection PyPep8Naming
-from logger import logger
+from kodiplex.logger import logger
 
 class KodiRPC:
     """Kodi RPC interface"""

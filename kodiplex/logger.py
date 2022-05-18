@@ -1,21 +1,22 @@
 """Standard logger for this project"""
 import sys
 import logging
-import yaml
+from kodiplex.config import cfg_get
 
-with open("config.yml", "r", encoding="utf-8") as ymlfile:
-    cfg = yaml.load(ymlfile, Loader=yaml.SafeLoader)
+def get_log_level():
+    """read log level from config"""
+    cfg_level = cfg_get("log", "level", "info")
+    log_level = getattr(logging, cfg_level.upper(), None)
+    if not isinstance(log_level, int):
+        raise ValueError(f"Invalid log level: {cfg_level}")
 
-# get log level from config
-log_level = getattr(logging, cfg["log"]["level"].upper(), None)
-if not isinstance(log_level, int):
-    raise ValueError(f"Invalid log level: {cfg['log']['level']}")
+    return log_level
 
 logger = logging.getLogger('kodiplex')
-logger.setLevel(log_level)
+logger.setLevel(get_log_level())
 
 # create file handler which logs up to debug messages
-fh = logging.FileHandler('kodiplex.log')
+fh = logging.FileHandler(cfg_get("log", "filename", "kodiplex.log"))
 fh.setLevel(logging.DEBUG)
 
 # create console handler which logs notset/debug/info to stdout and

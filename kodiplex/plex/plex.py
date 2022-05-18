@@ -1,8 +1,8 @@
 """Plex Media Server interface"""
 from typing import List
 from plexapi.server import PlexServer
+from kodiplex.logger import logger
 from kodiplex.media import Media, MediaType
-from logger import logger
 
 __all__ = [
     'get_media'

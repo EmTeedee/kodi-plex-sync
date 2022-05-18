@@ -9,6 +9,7 @@ plex:
     token:
 log:
     level: info
+    filename: kodiplex.log
 normalize:
     enable: false
     map: {

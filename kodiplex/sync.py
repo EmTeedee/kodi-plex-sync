@@ -2,12 +2,11 @@
 Kodi - Plex watched status sync
 """
 import time
-import yaml
 
 from kodiplex.kodi.kodi import get_media as get_kodi_media
 from kodiplex.plex.plex import get_media as get_plex_media
-from logger import logger
-
+from kodiplex.logger import logger
+from kodiplex.config import cfg_get
 
 class MediaSyncer:
     """
@@ -120,25 +119,25 @@ class MediaSyncer:
 
 def main():
     """run the media sync"""
-    with open("config.yml", "r", encoding="utf-8") as ymlfile:
-        cfg = yaml.load(ymlfile, Loader=yaml.SafeLoader)
 
     start = time.monotonic()
-    kodi_media = get_kodi_media(cfg["kodi"]["url"])
+    kodi_media = get_kodi_media(cfg_get("kodi", "url", "http://localhost:8080"))
     logger.debug('Get Kodi media %d files %.4fs', len(kodi_media), time.monotonic() - start)
 
     start = time.monotonic()
-    plex_media = get_plex_media(cfg["plex"]["url"], cfg["plex"]["token"])
+    plex_media = get_plex_media(
+        cfg_get("plex", "url", "http://192.168.0.100:32400"),
+        cfg_get("plex", "token", None))
     logger.debug("Get Plex media %d files %.4fs", len(plex_media), time.monotonic() - start)
 
-    if cfg["sync"]["first"] == "kodi":
-        sync = MediaSyncer(kodi_media, plex_media, cfg["sync"]["mode"],
-                           strict = cfg["sync"]["strict"],
-                           normalize = cfg["normalize"])
+    if cfg_get("sync", "first", "kodi") == "kodi":
+        sync = MediaSyncer(kodi_media, plex_media, cfg_get("sync", "mode", 1),
+                           strict = cfg_get("sync", "strict", False),
+                           normalize = cfg_get("normalize"))
     else:
-        sync = MediaSyncer(plex_media, kodi_media, cfg["sync"]["mode"],
-                           strict = cfg["sync"]["strict"],
-                           normalize = cfg["normalize"])
+        sync = MediaSyncer(plex_media, kodi_media, cfg_get("sync", "mode", 1),
+                           strict = cfg_get("sync", "strict", False),
+                           normalize = cfg_get("normalize"))
     sync.sync()
 
 if __name__ == "__main__":

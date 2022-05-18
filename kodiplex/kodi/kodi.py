@@ -2,7 +2,7 @@
 from typing import List
 from kodiplex.kodi.kodi_rpc import KodiRPC
 from kodiplex.media import Media
-from logger import logger
+from kodiplex.logger import logger
 
 __all__ = [
     'KodiMedia',
